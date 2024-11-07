@@ -19,8 +19,7 @@ ZXJpazpwYXNzCg==
 
 ```bash
 curl \
-    -H Authentication: Basic ZXJpazpwYXNzCg== \
-    -H Accept-Version: 1 \ ## defaults to 1
+    -H "Authentication: Basic ZXJpazpwYXNzCg==" \
     -X POST \
     --data '{ "url": "https://foo.com/bar", "category": "fizzle" }' \
     https://enlace.space/links
