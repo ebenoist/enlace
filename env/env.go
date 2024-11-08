@@ -1,12 +1,18 @@
 package env
 
-import "os"
+import (
+	"log"
+	"os"
+)
 
-func Get(key, fallback string) string {
+func Get(key string, fallback ...string) string {
 	if v := os.Getenv(key); v != "" {
 		return v
 	}
 
-	return fallback
-}
+	if len(fallback) == 0 {
+		log.Fatalf("missing required environment variable: %s", key)
+	}
 
+	return fallback[0]
+}
