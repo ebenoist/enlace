@@ -1,7 +1,9 @@
 package main
 
 import (
+	"errors"
 	"fmt"
+	"log"
 	"net/http"
 
 	"github.com/ebenoist/enlace/db"
@@ -11,17 +13,39 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
+type LinksRequest struct {
+	URL      string `json:"url"`
+	Category string `json:"category"`
+}
+
 func main() {
 	r := gin.Default()
 	r.SetTrustedProxies(nil)
 
 	r.POST("/links", func(c *gin.Context) {
-		db.CreateLink(&db.Link{})
+		var req LinksRequest
+		err := c.BindJSON(&req)
+		if err != nil {
+			c.AbortWithError(http.StatusBadRequest, errors.New("request was malformed"))
+			return
+		}
+
+		u, err := db.NewURL(req.URL)
+		if err != nil {
+			c.AbortWithError(http.StatusBadRequest, errors.New("url was malformed"))
+			return
+		}
+
+		db.CreateLink(&db.Link{
+			URL:      u,
+			Category: req.Category,
+		})
 		c.String(http.StatusOK, "success")
 	})
 
 	r.GET("/~:userID/rss.xml", func(c *gin.Context) {
 		userID := c.Param("userID")
+		log.Printf("returning rss feed for %s", userID)
 		links, err := db.GetLinks(userID)
 
 		if err != nil {

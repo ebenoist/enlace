@@ -3,9 +3,16 @@
 GOFLAGS=-mod=vendor
 GOPROXY="off"
 
+GOTEST = ${GOPATH}/bin/gotestsum
+GOTEST_FLAGS = --format-icons --format pkgname
+
 all: vet test install
-test:
-	@go test ./... -v -race
+
+${GOTEST}:
+	$(shell go install gotest.tools/gotestsum@latest)
+
+test: ${GOTEST}
+	${GOTEST}
 
 install:
 	@go install -mod=vendor .

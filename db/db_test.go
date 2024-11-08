@@ -5,13 +5,13 @@ import (
 	"testing"
 )
 
-func newURL(href string) *sqlURL {
+func newURL(href string) *URL {
 	u, err := url.Parse(href)
 	if err != nil {
 		panic(err)
 	}
 
-	return &sqlURL{u}
+	return &URL{u}
 }
 
 func Test_CreateLink(t *testing.T) {

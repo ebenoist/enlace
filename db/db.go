@@ -18,15 +18,24 @@ import (
 var conn *sqlx.DB
 var s, _ = sqids.New()
 
-type sqlURL struct {
+func NewURL(r string) (*URL, error) {
+	u, err := url.Parse(r)
+	if err != nil {
+		return nil, err
+	}
+
+	return &URL{URL: u}, nil
+}
+
+type URL struct {
 	*url.URL
 }
 
-func (u *sqlURL) Value() (driver.Value, error) {
+func (u *URL) Value() (driver.Value, error) {
 	return u.String(), nil
 }
 
-func (u *sqlURL) Scan(src interface{}) error {
+func (u *URL) Scan(src interface{}) error {
 	p, err := url.Parse(src.(string))
 	if err != nil {
 		return err
@@ -39,9 +48,9 @@ func (u *sqlURL) Scan(src interface{}) error {
 
 type Link struct {
 	// user generated fields
-	URL      *sqlURL `db:"url"`
-	Category string  `db:"category"`
-	UserID   string  `db:"user_id"`
+	URL      *URL   `db:"url"`
+	Category string `db:"category"`
+	UserID   string `db:"user_id"`
 
 	// system generated fields
 	Title       string     `db:"title"`
@@ -83,7 +92,7 @@ func init() {
 }
 
 func GetLinks(userID string) ([]*Link, error) {
-	links := make([]*Link, 0, 0)
+	links := make([]*Link, 0)
 	err := conn.Select(
 		&links,
 		`SELECT * FROM links WHERE user_id = ?`,
