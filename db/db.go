@@ -1,11 +1,12 @@
 package db
 
 import (
+	"database/sql/driver"
+
 	"github.com/ebenoist/enlace/env"
 	"github.com/jmoiron/sqlx"
 	"github.com/sqids/sqids-go"
 
-	// "github.com/jmoiron/sqlx"
 	"log"
 	"net/netip"
 	"net/url"
@@ -14,24 +15,47 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
-var conn sqlx.DB
+var conn *sqlx.DB
 var s, _ = sqids.New()
+
+type sqlURL struct {
+	*url.URL
+}
+
+func (u *sqlURL) Value() (driver.Value, error) {
+	return u.String(), nil
+}
+
+func (u *sqlURL) Scan(src interface{}) error {
+	p, err := url.Parse(src.(string))
+	if err != nil {
+		return err
+	}
+
+	u.URL = p
+
+	return err
+}
 
 type Link struct {
 	// user generated fields
-	URL      *url.URL `db:"url"`
-	Category string   `db:"category"`
-	UserID   string   `db:"user_id"`
+	URL      *sqlURL `db:"url"`
+	Category string  `db:"category"`
+	UserID   string  `db:"user_id"`
 
 	// system generated fields
-	CreatedAt time.Time  `db:"created_at"`
-	ID        string     `db:"id"`
-	IP        netip.Addr `db:"ip"`
+	Title       string     `db:"title"`
+	Description string     `db:"description"`
+	CreatedAt   time.Time  `db:"created_at"`
+	ID          string     `db:"id"`
+	IP          netip.Addr `db:"ip"`
 }
 
 func init() {
-	url := env.Get("DATABASE_URL", "enlace.db")
-	conn, err := sqlx.Open("sqlite3", url)
+	url := env.Get("DATABASE_URL", "../enlace.db")
+	var err error
+
+	conn, err = sqlx.Open("sqlite3", url)
 	if err != nil {
 		log.Fatalf("sql: no connection to %s - %s", url, err)
 	}
@@ -40,7 +64,7 @@ func init() {
 		BEGIN;
 		CREATE TABLE IF NOT EXISTS links (
 			id INTEGER PRIMARY KEY,
-			created_at VARCHAR(24),
+			created_at DATETIME,
 			url VARCHAR(2048),
 			user_id VARCHAR(128),
 			category VARCHAR(128) NULL,
@@ -58,23 +82,48 @@ func init() {
 	}
 }
 
-func GetLinks(userID string) ([]Link, error) {
-	links := []Link{}
-
-	err := conn.Select(&links, ` // TODO: not working
-	SELECT *
-	FROM links
-	WHERE links.user_id = $1
-	ORDER BY created_at DESC")
-	`, userID)
+func GetLinks(userID string) ([]*Link, error) {
+	links := make([]*Link, 0, 0)
+	err := conn.Select(
+		&links,
+		`SELECT * FROM links WHERE user_id = ?`,
+		userID,
+	)
 
 	return links, err
 }
 
-func CreateLink(link Link) (Link, error) {
-	return Link{}, nil
+func CreateLink(link *Link) (*Link, error) {
+	_, err := conn.Exec(`
+		INSERT INTO links (
+			created_at,
+			url,
+			user_id,
+			category,
+			description,
+			title
+		) VALUES (?, ?, ?, ?, ?, ?)`,
+		time.Now().Format(time.RFC3339),
+		link.URL,
+		link.UserID,
+		link.Category,
+		link.Description,
+		link.Title,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return &Link{}, err
 }
 
-func DeleteLink(link Link) error {
+func DeleteLink(link *Link) error {
 	return nil
+}
+
+func purge() {
+	_, err := conn.Exec("DELETE FROM links")
+	if err != nil {
+		panic(err)
+	}
 }

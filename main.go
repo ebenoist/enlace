@@ -7,6 +7,8 @@ import (
 	"github.com/ebenoist/enlace/db"
 	"github.com/ebenoist/enlace/env"
 	"github.com/gin-gonic/gin"
+
+	_ "github.com/mattn/go-sqlite3"
 )
 
 func main() {
@@ -14,7 +16,7 @@ func main() {
 	r.SetTrustedProxies(nil)
 
 	r.POST("/links", func(c *gin.Context) {
-		db.CreateLink(db.Link{})
+		db.CreateLink(&db.Link{})
 		c.String(http.StatusOK, "success")
 	})
 
@@ -30,7 +32,15 @@ func main() {
 			return
 		}
 
-		presented, _ := presentRSS(userID, links)
+		presented, err := presentRSS(userID, links)
+		if err != nil {
+			c.String(
+				http.StatusInternalServerError,
+				fmt.Sprintf("FATAL ERROR: %s", err),
+			)
+			return
+		}
+
 		c.String(http.StatusOK, string(presented))
 	})
 

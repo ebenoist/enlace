@@ -29,7 +29,7 @@ type Item struct {
 	Category    string    `xml:"category"`
 }
 
-func presentRSS(userID string, links []db.Link) ([]byte, error) {
+func presentRSS(userID string, links []*db.Link) ([]byte, error) {
 	rss := &rss{
 		Version: "2.0",
 		Schema:  "http://www.w3.org/2005/Atom",
@@ -45,7 +45,7 @@ func presentRSS(userID string, links []db.Link) ([]byte, error) {
 	return xml.MarshalIndent(rss, "", "  ")
 }
 
-func presentItems(links []db.Link) []Item {
+func presentItems(links []*db.Link) []Item {
 	items := make([]Item, 0, len(links))
 
 	for _, link := range links {
