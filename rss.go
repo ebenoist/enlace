@@ -18,15 +18,16 @@ type rss struct {
 type Channel struct {
 	Title string `xml:"title"`
 	Link  string `xml:"link"`
-	Item  []Item
+	Item  []Item `xml:"item"`
 }
 
 type Item struct {
-	Title       string    `xml:"title"`
-	Description string    `xml:"description"`
-	Link        string    `xml:"link"`
-	PubDate     time.Time `xml:"pubDate"`
-	Category    string    `xml:"category"`
+	Title       string     `xml:"title"`
+	Description string     `xml:"description"`
+	Link        string     `xml:"link"`
+	PubDate     *time.Time `xml:"pubDate"`
+	Category    string     `xml:"category"`
+	Guid        string     `xml:"guid"`
 }
 
 func presentRSS(userID string, links []*db.Link) ([]byte, error) {
@@ -50,8 +51,8 @@ func presentItems(links []*db.Link) []Item {
 
 	for _, link := range links {
 		items = append(items, Item{
-			Title:       "",
-			Description: "",
+			Title:       link.Title,
+			Description: link.Description,
 			Link:        link.URL.String(),
 			PubDate:     link.CreatedAt,
 			Category:    link.Category,

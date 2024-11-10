@@ -26,6 +26,7 @@ func Test_CreateLink(t *testing.T) {
 
 func Test_GetLinks(t *testing.T) {
 	purge()
+	defer purge()
 
 	_, err := CreateLink(&Link{
 		UserID: "123",
