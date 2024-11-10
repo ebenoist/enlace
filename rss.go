@@ -51,6 +51,7 @@ func presentItems(links []*db.Link) []Item {
 
 	for _, link := range links {
 		items = append(items, Item{
+			Guid:        fmt.Sprintf("%s/links/%s", env.Get("HOST"), link.ID),
 			Title:       link.Title,
 			Description: link.Description,
 			Link:        link.URL.String(),

@@ -97,6 +97,7 @@ func init() {
 
 func GetLinks(userID string) ([]*Link, error) {
 	links := make([]*Link, 0)
+	// TODO: change to return public ID
 	err := conn.Select(
 		&links,
 		`SELECT * FROM links WHERE user_id = ?`,
@@ -104,6 +105,12 @@ func GetLinks(userID string) ([]*Link, error) {
 	)
 
 	return links, err
+}
+
+func GetLink(id string) (*Link, error) {
+	return &Link{
+		Markdown: "**bold**",
+	}, nil
 }
 
 func UpdateLink(link *Link) (*Link, error) {

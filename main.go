@@ -105,5 +105,22 @@ func main() {
 		c.String(http.StatusOK, string(presented))
 	})
 
+	// TODO: consider a route that isn't susceptible to iteration
+	// attacks
+
+	// just return markdown for `md`
+	r.GET("/links/:id.md", func(c *gin.Context) {
+		link, err := db.GetLink(c.Param("id"))
+
+		if err != nil {
+			c.String(
+				http.StatusNotFound,
+				fmt.Sprintf("not found"), // TODO: error messages
+			)
+		}
+
+		c.String(http.StatusOK, link.Markdown)
+	})
+
 	r.Run(env.Get("LISTEN", "127.0.0.1:9292"))
 }
