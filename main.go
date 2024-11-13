@@ -1,14 +1,19 @@
 package main
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"log"
 	"net/http"
+	"path/filepath"
+	"strings"
 
 	"github.com/ebenoist/enlace/db"
 	"github.com/ebenoist/enlace/env"
 	"github.com/gin-gonic/gin"
+
+	"github.com/yuin/goldmark"
 
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -102,21 +107,35 @@ func main() {
 			return
 		}
 
-		c.String(http.StatusOK, string(presented))
+		c.Data(http.StatusOK, "application/rss+xml", presented)
 	})
 
 	// TODO: consider a route that isn't susceptible to iteration
 	// attacks
 
 	// just return markdown for `md`
-	r.GET("/links/:id.md", func(c *gin.Context) {
-		link, err := db.GetLink(c.Param("id"))
+	r.GET("/links/:id", func(c *gin.Context) {
+		raw := c.Param("id")
+		ext := filepath.Ext(raw)
+
+		id := strings.TrimSuffix(filepath.Base(raw), ext)
+		link, err := db.GetLink(id)
 
 		if err != nil {
-			c.String(
-				http.StatusNotFound,
-				fmt.Sprintf("not found"), // TODO: error messages
+			c.AbortWithError(
+				http.StatusInternalServerError,
+				err,
 			)
+
+			return
+		}
+
+		if ext == ".html" {
+			var buf bytes.Buffer
+			goldmark.Convert([]byte(link.Markdown), &buf)
+
+			c.Data(http.StatusOK, "text/html; charset=utf-8", buf.Bytes())
+			return
 		}
 
 		c.String(http.StatusOK, link.Markdown)

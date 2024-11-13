@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/xml"
 	"fmt"
-	"time"
 
 	"github.com/ebenoist/enlace/db"
 	"github.com/ebenoist/enlace/env"
@@ -16,18 +15,19 @@ type rss struct {
 }
 
 type Channel struct {
-	Title string `xml:"title"`
-	Link  string `xml:"link"`
-	Item  []Item `xml:"item"`
+	Title       string `xml:"title"`
+	Link        string `xml:"link"`
+	Description string `xml:"description"`
+	Item        []Item `xml:"item"`
 }
 
 type Item struct {
-	Title       string     `xml:"title"`
-	Description string     `xml:"description"`
-	Link        string     `xml:"link"`
-	PubDate     *time.Time `xml:"pubDate"`
-	Category    string     `xml:"category"`
-	Guid        string     `xml:"guid"`
+	Title       string `xml:"title"`
+	Description string `xml:"description"`
+	Link        string `xml:"link"`
+	PubDate     string `xml:"pubDate"`
+	Category    string `xml:"category"`
+	Guid        string `xml:"guid"`
 }
 
 func presentRSS(userID string, links []*db.Link) ([]byte, error) {
@@ -36,9 +36,10 @@ func presentRSS(userID string, links []*db.Link) ([]byte, error) {
 		Schema:  "http://www.w3.org/2005/Atom",
 		Channel: []Channel{
 			{
-				Title: userID,
-				Link:  presentLink(userID),
-				Item:  presentItems(links),
+				Title:       userID,
+				Link:        presentLink(userID),
+				Item:        presentItems(links),
+				Description: "enlace.space",
 			},
 		},
 	}
@@ -46,16 +47,22 @@ func presentRSS(userID string, links []*db.Link) ([]byte, error) {
 	return xml.MarshalIndent(rss, "", "  ")
 }
 
+const rssDateTime = "Mon, 02 Jan 2006 15:04:05 -0700"
+
 func presentItems(links []*db.Link) []Item {
 	items := make([]Item, 0, len(links))
 
 	for _, link := range links {
 		items = append(items, Item{
-			Guid:        fmt.Sprintf("%s/links/%s", env.Get("HOST"), link.ID),
+			Guid: fmt.Sprintf(
+				"%s/links/%s",
+				env.Get("HOST"),
+				link.UID(),
+			),
 			Title:       link.Title,
 			Description: link.Description,
 			Link:        link.URL.String(),
-			PubDate:     link.CreatedAt,
+			PubDate:     link.CreatedAt.Format(rssDateTime),
 			Category:    link.Category,
 		})
 	}
