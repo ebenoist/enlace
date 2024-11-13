@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
 	"log"
@@ -11,9 +10,8 @@ import (
 
 	"github.com/ebenoist/enlace/db"
 	"github.com/ebenoist/enlace/env"
+	"github.com/ebenoist/enlace/scrapper"
 	"github.com/gin-gonic/gin"
-
-	"github.com/yuin/goldmark"
 
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -61,15 +59,15 @@ func main() {
 		go func() {
 			og, err := ParseOG(req.URL)
 			if err != nil {
-				log.Printf("could not parse OG for %s - %s", req.URL, err)
+				log.Fatalf("could not parse OG for %s - %s", req.URL, err)
 			}
 
-			md, err := ParseMD(req.URL)
+			_, err = scrapper.Scrape(req.URL)
 			if err != nil {
-				log.Printf("could not parse MD for %s - %s", req.URL, err)
+				log.Fatalf("could not parse HTML for %s - %s", req.URL, err)
 			}
 
-			link.Markdown = md
+			// link.Content = string(html)
 			link.Description = og.Description
 			link.Title = og.Title
 
@@ -130,15 +128,7 @@ func main() {
 			return
 		}
 
-		if ext == ".html" {
-			var buf bytes.Buffer
-			goldmark.Convert([]byte(link.Markdown), &buf)
-
-			c.Data(http.StatusOK, "text/html; charset=utf-8", buf.Bytes())
-			return
-		}
-
-		c.String(http.StatusOK, link.Markdown)
+		c.Data(http.StatusOK, "text/html; charset=utf-8", []byte(link.Content))
 	})
 
 	r.GET("/~:userID/rss.xsl", func(c *gin.Context) {

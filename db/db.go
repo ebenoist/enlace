@@ -1,7 +1,6 @@
 package db
 
 import (
-	"bytes"
 	"database/sql/driver"
 	"errors"
 	"strconv"
@@ -9,7 +8,6 @@ import (
 	"github.com/ebenoist/enlace/env"
 	"github.com/jmoiron/sqlx"
 	"github.com/sqids/sqids-go"
-	"github.com/yuin/goldmark"
 
 	"log"
 	"net/netip"
@@ -62,18 +60,11 @@ type Link struct {
 	// system generated fields
 	Title       string     `db:"title"`
 	Description string     `db:"description"`
-	Markdown    string     `db:"markdown"`
+	Content     string     `db:"content"`
 	CreatedAt   *time.Time `db:"created_at"`
 	UpdatedAt   *time.Time `db:"updated_at"`
 	ID          string     `db:"id"`
 	IP          netip.Addr `db:"ip"`
-}
-
-func (l *Link) HTML() string {
-	var buf bytes.Buffer
-	goldmark.Convert([]byte(l.Markdown), &buf)
-
-	return buf.String()
 }
 
 func (l *Link) UID() string {
@@ -101,7 +92,7 @@ func init() {
 			user_id VARCHAR(128),
 			category VARCHAR(128) NULL,
 			description VARCHAR(2048) NULL,
-			markdown TEXT NULL,
+			content TEXT NULL,
 			title VARCHAR(50) NULL
 		);
 
@@ -143,13 +134,13 @@ func UpdateLink(link *Link) (*Link, error) {
 		UPDATE links SET
 			title = ?,
 			description = ?,
-			markdown = ?,
+			content = ?,
 			updated_at = ?
 		WHERE id = ?
 	`,
 		link.Title,
 		link.Description,
-		link.Markdown,
+		link.Content,
 		now.Format(time.RFC3339),
 		link.ID,
 	)
@@ -173,8 +164,8 @@ func CreateLink(link *Link) (*Link, error) {
 		link.URL,
 		link.UserID,
 		link.Category,
-		link.Description,
-		link.Title,
+		"Loading description...",
+		"Loading title...",
 	)
 	if err != nil {
 		return nil, err

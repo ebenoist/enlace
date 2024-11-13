@@ -4,11 +4,11 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/dyatlov/go-opengraph/opengraph"
+	"github.com/ebenoist/enlace/htmlinfo"
 )
 
-func ParseOG(url string) (*opengraph.OpenGraph, error) {
-	og := opengraph.NewOpenGraph()
+func ParseOG(url string) (*htmlinfo.HTMLInfo, error) {
+	info := htmlinfo.NewHTMLInfo()
 
 	resp, err := http.Get(url)
 	if err != nil {
@@ -16,7 +16,7 @@ func ParseOG(url string) (*opengraph.OpenGraph, error) {
 	}
 	log.Printf("og parse results - %+v", resp)
 
-	err = og.ProcessHTML(resp.Body)
-	log.Printf("og parse results - %s", og)
-	return og, err
+	err = info.Parse(resp.Body, &url, nil)
+	log.Printf("og parse results - %s", info)
+	return info, err
 }
