@@ -25,7 +25,7 @@ setup: install
 update: install
 
 deploy:
-	go build .
+	CC=x86_64-linux-musl-gcc CXX=x86_64-linux-musl-g++ GOARCH=amd64 GOOS=linux CGO_ENABLED=1 go build -ldflags '-linkmode external -extldflags -static'
 	@echo "stopping"
 	@echo ${BENOIST_SUDO_PASS} | ssh -tt erik@benoist.dev "sudo service enlace.space stop"
 	scp enlace deploy@benoist.dev:/home/deploy/enlace.space/

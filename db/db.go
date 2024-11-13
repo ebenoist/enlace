@@ -1,11 +1,15 @@
 package db
 
 import (
+	"bytes"
 	"database/sql/driver"
+	"errors"
+	"strconv"
 
 	"github.com/ebenoist/enlace/env"
 	"github.com/jmoiron/sqlx"
 	"github.com/sqids/sqids-go"
+	"github.com/yuin/goldmark"
 
 	"log"
 	"net/netip"
@@ -17,6 +21,9 @@ import (
 
 var conn *sqlx.DB
 var idgen, _ = sqids.New()
+
+var ErrNotFound = errors.New("entity not found")
+var ErrBadRequest = errors.New("bad id")
 
 func NewURL(r string) (*URL, error) {
 	u, err := url.Parse(r)
@@ -62,6 +69,19 @@ type Link struct {
 	IP          netip.Addr `db:"ip"`
 }
 
+func (l *Link) HTML() string {
+	var buf bytes.Buffer
+	goldmark.Convert([]byte(l.Markdown), &buf)
+
+	return buf.String()
+}
+
+func (l *Link) UID() string {
+	n, _ := strconv.Atoi(l.ID)
+	publicID, _ := idgen.Encode([]uint64{uint64(n), 42})
+	return publicID
+}
+
 func init() {
 	url := env.Get("DATABASE_URL", "./enlace.db")
 	var err error
@@ -97,7 +117,6 @@ func init() {
 
 func GetLinks(userID string) ([]*Link, error) {
 	links := make([]*Link, 0)
-	// TODO: change to return public ID
 	err := conn.Select(
 		&links,
 		`SELECT * FROM links WHERE user_id = ?`,
@@ -108,28 +127,31 @@ func GetLinks(userID string) ([]*Link, error) {
 }
 
 func GetLink(id string) (*Link, error) {
-	return &Link{
-		Markdown: "**bold**",
-	}, nil
+	rid := idgen.Decode(id)
+	if len(rid) == 0 {
+		return nil, ErrBadRequest
+	}
+
+	var link Link
+	err := conn.Get(&link, `SELECT * FROM links WHERE id = ?`, rid[0])
+	return &link, err
 }
 
 func UpdateLink(link *Link) (*Link, error) {
 	now := time.Now()
-	id := idgen.Decode(link.ID)[0]
-
-	log.Printf("updating %d", id)
-
 	_, err := conn.Exec(`
 		UPDATE links SET
 			title = ?,
 			description = ?,
+			markdown = ?,
 			updated_at = ?
 		WHERE id = ?
 	`,
 		link.Title,
 		link.Description,
+		link.Markdown,
 		now.Format(time.RFC3339),
-		id,
+		link.ID,
 	)
 
 	link.UpdatedAt = &now
@@ -163,9 +185,7 @@ func CreateLink(link *Link) (*Link, error) {
 		return nil, err
 	}
 
-	publicID, _ := idgen.Encode([]uint64{uint64(id)})
-	log.Printf("created - %s", publicID)
-	link.ID = publicID
+	link.ID = strconv.Itoa(int(id))
 	link.CreatedAt = &now
 
 	return link, err
