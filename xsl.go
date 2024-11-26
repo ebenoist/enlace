@@ -67,7 +67,6 @@ var XSL = []byte(`<?xml version="1.0" encoding="utf-8"?>
 							<a class="head_link">
 								<xsl:attribute name="href">
 									<xsl:value-of select="guid"/>
-									<xsl:value-of select="'.html'"/>
 								</xsl:attribute>
 								Archive
 							</a>

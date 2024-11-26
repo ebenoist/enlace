@@ -87,6 +87,7 @@ func main() {
 		userID := c.Param("userID")
 		log.Printf("returning rss feed for %s", userID)
 		links, err := db.GetLinks(userID)
+		bookmarks, err := db.GetHoarderLinks()
 
 		if err != nil {
 			c.String(
@@ -95,6 +96,8 @@ func main() {
 			)
 			return
 		}
+
+		links = append(links, bookmarks...)
 
 		presented, err := presentRSS(userID, links)
 		if err != nil {
@@ -114,10 +117,19 @@ func main() {
 	// just return markdown for `md`
 	r.GET("/links/:id", func(c *gin.Context) {
 		raw := c.Param("id")
+		source := c.Query("src")
 		ext := filepath.Ext(raw)
 
 		id := strings.TrimSuffix(filepath.Base(raw), ext)
-		link, err := db.GetLink(id)
+
+		var link *db.Link
+		var err error
+
+		if source == "hoarder" {
+			link, err = db.GetHoarderLink(id)
+		} else {
+			link, err = db.GetLink(id)
+		}
 
 		if err != nil {
 			c.AbortWithError(

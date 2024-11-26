@@ -3,6 +3,7 @@ package db
 import (
 	"database/sql/driver"
 	"errors"
+	"fmt"
 	"strconv"
 
 	"github.com/ebenoist/enlace/env"
@@ -41,6 +42,7 @@ func (u *URL) Value() (driver.Value, error) {
 }
 
 func (u *URL) Scan(src interface{}) error {
+	fmt.Printf("got to scan %+v", src)
 	p, err := url.Parse(src.(string))
 	if err != nil {
 		return err
@@ -65,6 +67,22 @@ type Link struct {
 	UpdatedAt   *time.Time `db:"updated_at"`
 	ID          string     `db:"id"`
 	IP          netip.Addr `db:"ip"`
+}
+
+func (l *Link) GUID() string {
+	if l.Category == "hoarder" {
+		return fmt.Sprintf(
+			"%s/links/%s?src=hoarder",
+			env.Get("HOST"),
+			l.ID,
+		)
+	}
+
+	return fmt.Sprintf(
+		"%s/links/%s",
+		env.Get("HOST"),
+		l.UID(),
+	)
 }
 
 func (l *Link) UID() string {
