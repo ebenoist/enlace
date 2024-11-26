@@ -30,6 +30,7 @@ deploy:
 	@echo "stopping"
 	@echo ${BENOIST_SUDO_PASS} | ssh -tt erik@benoist.dev "sudo service enlace.space stop"
 	scp enlace deploy@benoist.dev:/home/deploy/enlace.space/
+	scp templates/* deploy@benoist.dev:/home/deploy/enlace.space/templates/
 	@echo "starting"
 	@echo ${BENOIST_SUDO_PASS} | ssh -tt erik@benoist.dev "sudo service enlace.space start"
 

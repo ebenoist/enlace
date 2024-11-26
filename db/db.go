@@ -128,7 +128,15 @@ func GetLinks(userID string) ([]*Link, error) {
 	links := make([]*Link, 0)
 	err := conn.Select(
 		&links,
-		`SELECT * FROM links WHERE user_id = ?`,
+		`SELECT
+			id,
+			title,
+			url,
+			description,
+			created_at,
+			updated_at
+		FROM links WHERE user_id = ?
+		ORDER BY created_at DESC`,
 		userID,
 	)
 
@@ -140,6 +148,8 @@ func GetLink(id string) (*Link, error) {
 	if len(rid) == 0 {
 		return nil, ErrBadRequest
 	}
+
+	log.Println(rid)
 
 	var link Link
 	err := conn.Get(&link, `SELECT * FROM links WHERE id = ?`, rid[0])
@@ -176,14 +186,16 @@ func CreateLink(link *Link) (*Link, error) {
 			user_id,
 			category,
 			description,
-			title
-		) VALUES (?, ?, ?, ?, ?, ?)`,
+			title,
+			content
+		) VALUES (?, ?, ?, ?, ?, ?, ?)`,
 		now.Format(time.RFC3339),
 		link.URL,
 		link.UserID,
 		link.Category,
-		"Loading description...",
-		"Loading title...",
+		"",
+		"",
+		"",
 	)
 	if err != nil {
 		return nil, err

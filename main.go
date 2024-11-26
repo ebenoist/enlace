@@ -24,6 +24,7 @@ type LinksRequest struct {
 func main() {
 	r := gin.Default()
 	r.SetTrustedProxies(nil)
+	r.LoadHTMLGlob("templates/*.tmpl")
 
 	r.POST("/links", func(c *gin.Context) {
 		var req LinksRequest
@@ -59,15 +60,15 @@ func main() {
 		go func() {
 			og, err := ParseOG(req.URL)
 			if err != nil {
-				log.Fatalf("could not parse OG for %s - %s", req.URL, err)
+				log.Printf("could not parse OG for %s - %s", req.URL, err)
 			}
 
-			_, err = scrapper.Scrape(req.URL)
+			html, err := scrapper.Scrape(req.URL)
 			if err != nil {
-				log.Fatalf("could not parse HTML for %s - %s", req.URL, err)
+				log.Printf("could not parse HTML for %s - %s", req.URL, err)
 			}
 
-			// link.Content = string(html)
+			link.Content = string(html)
 			link.Description = og.Description
 			link.Title = og.Title
 
@@ -108,13 +109,12 @@ func main() {
 			return
 		}
 
-		c.Data(http.StatusOK, "application/xml; charset=utf-8", presented)
+		c.Header("X-Content-Type-Options", "nosniff")
+		c.Data(http.StatusOK, "text/xml; charset=utf-8", presented)
 	})
 
 	// TODO: consider a route that isn't susceptible to iteration
 	// attacks
-
-	// just return markdown for `md`
 	r.GET("/links/:id", func(c *gin.Context) {
 		raw := c.Param("id")
 		source := c.Query("src")
@@ -140,7 +140,12 @@ func main() {
 			return
 		}
 
-		c.Data(http.StatusOK, "text/html; charset=utf-8", []byte(link.Content))
+		c.HTML(http.StatusOK, "index.tmpl", gin.H{
+			"Title":     link.Title,
+			"CreatedAt": link.CreatedAt,
+			"Content":   link.Content,
+			"UserID":    link.UserID,
+		})
 	})
 
 	r.GET("/~:userID/rss.xsl", func(c *gin.Context) {
